@@ -82,9 +82,16 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
     try {
       setError(null);
       
-      const constraints = {
+      // 모바일에서는 낮은 해상도로 설정
+      const constraints = isMobile ? {
         video: {
           facingMode: 'environment', // 후면 카메라 사용
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 480, max: 720 }
+        }
+      } : {
+        video: {
+          facingMode: 'environment',
           width: { ideal: 1280, max: 1920 },
           height: { ideal: 720, max: 1080 }
         }
@@ -94,46 +101,66 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
       streamRef.current = stream;
       
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute('playsinline', true);
-        videoRef.current.setAttribute('webkit-playsinline', true);
-        videoRef.current.muted = true;
+        const video = videoRef.current;
+        
+        // 비디오 속성 명시적으로 설정 (모바일 호환성)
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.setAttribute('x5-playsinline', 'true');
+        video.muted = true;
+        video.playsInline = true;
+        
+        // 스트림 설정
+        video.srcObject = stream;
         
         // 비디오가 로드될 때까지 대기
         await new Promise((resolve, reject) => {
-          if (!videoRef.current) {
+          if (!video) {
             reject(new Error('비디오 요소가 없습니다.'));
             return;
           }
           
-          const video = videoRef.current;
-          
           const onLoadedMetadata = () => {
             video.removeEventListener('loadedmetadata', onLoadedMetadata);
+            video.removeEventListener('error', onError);
+            clearTimeout(timeoutId);
             resolve();
           };
           
           const onError = (e) => {
+            video.removeEventListener('loadedmetadata', onLoadedMetadata);
             video.removeEventListener('error', onError);
+            clearTimeout(timeoutId);
             reject(new Error('비디오 로드 실패'));
           };
           
           video.addEventListener('loadedmetadata', onLoadedMetadata);
           video.addEventListener('error', onError);
           
-          // 타임아웃 설정 (5초)
-          setTimeout(() => {
+          // 타임아웃 설정 (10초로 증가)
+          const timeoutId = setTimeout(() => {
             video.removeEventListener('loadedmetadata', onLoadedMetadata);
             video.removeEventListener('error', onError);
             reject(new Error('비디오 로드 타임아웃'));
-          }, 5000);
+          }, 10000);
         });
         
+        // 비디오 재생 시도
         try {
-          await videoRef.current.play();
+          await video.play();
+          console.log('비디오 재생 성공');
         } catch (playError) {
           console.error('비디오 재생 오류:', playError);
-          throw new Error('비디오 재생에 실패했습니다. 브라우저 권한을 확인해주세요.');
+          // 재생 실패 시 한 번 더 시도
+          try {
+            video.load();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await video.play();
+            console.log('비디오 재생 재시도 성공');
+          } catch (retryError) {
+            console.error('비디오 재생 재시도 실패:', retryError);
+            throw new Error('비디오 재생에 실패했습니다. 브라우저 권한을 확인해주세요.');
+          }
         }
       }
 
@@ -194,8 +221,27 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
         }
       }, 1000); // 1초마다 스캔
     } catch (err) {
-      setError('카메라 접근에 실패했습니다. 카메라 권한을 확인해주세요.');
+      console.error('카메라 스캔 시작 오류:', err);
+      let errorMessage = '카메라 접근에 실패했습니다.';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMessage = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage = '카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMessage = '카메라에 접근할 수 없습니다. 다른 앱에서 카메라를 사용 중일 수 있습니다.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       setIsScanning(false);
+      
+      // 스트림 정리
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
     }
   };
 
@@ -422,7 +468,8 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
                 height: 'auto',
                 backgroundColor: '#000',
                 display: 'block',
-                minHeight: '300px'
+                minHeight: '300px',
+                objectFit: 'cover'
               }}
             />
             <div className="scanner-overlay">
