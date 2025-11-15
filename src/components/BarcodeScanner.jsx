@@ -260,24 +260,53 @@ const BarcodeScanner = ({ onBarcodeScanned, onBarcodesBatch, isMobile, maxCount,
       )}
 
       <div>
+        {/* 사진 선택 (갤러리) */}
         <input
           type="file"
           accept="image/*"
           multiple
-          capture={isMobile ? "environment" : undefined}
           onChange={handleFileInput}
           style={{ display: 'none' }}
           id="file-input"
         />
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            document.getElementById('file-input').click();
-          }}
-          disabled={currentCount >= maxCount}
-        >
-          {isMobile ? '사진 선택' : '사진 선택'}
-        </button>
+        {/* 사진 촬영 (카메라) - 모바일 전용, 여러 장 촬영 가능 */}
+        {isMobile && (
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            onChange={handleFileInput}
+            style={{ display: 'none' }}
+            id="camera-input"
+          />
+        )}
+        
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              document.getElementById('file-input').click();
+            }}
+            disabled={currentCount >= maxCount}
+          >
+            사진 선택
+          </button>
+          {isMobile && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                document.getElementById('camera-input').click();
+              }}
+              disabled={currentCount >= maxCount}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <span>📷</span>
+              <span>사진 촬영</span>
+            </button>
+          )}
+        </div>
+        
         {currentCount >= maxCount && (
           <div style={{ 
             marginTop: '10px', 
