@@ -85,8 +85,8 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
       const constraints = {
         video: {
           facingMode: 'environment', // 후면 카메라 사용
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 }
         }
       };
 
@@ -96,7 +96,45 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute('playsinline', true);
-        await videoRef.current.play();
+        videoRef.current.setAttribute('webkit-playsinline', true);
+        videoRef.current.muted = true;
+        
+        // 비디오가 로드될 때까지 대기
+        await new Promise((resolve, reject) => {
+          if (!videoRef.current) {
+            reject(new Error('비디오 요소가 없습니다.'));
+            return;
+          }
+          
+          const video = videoRef.current;
+          
+          const onLoadedMetadata = () => {
+            video.removeEventListener('loadedmetadata', onLoadedMetadata);
+            resolve();
+          };
+          
+          const onError = (e) => {
+            video.removeEventListener('error', onError);
+            reject(new Error('비디오 로드 실패'));
+          };
+          
+          video.addEventListener('loadedmetadata', onLoadedMetadata);
+          video.addEventListener('error', onError);
+          
+          // 타임아웃 설정 (5초)
+          setTimeout(() => {
+            video.removeEventListener('loadedmetadata', onLoadedMetadata);
+            video.removeEventListener('error', onError);
+            reject(new Error('비디오 로드 타임아웃'));
+          }, 5000);
+        });
+        
+        try {
+          await videoRef.current.play();
+        } catch (playError) {
+          console.error('비디오 재생 오류:', playError);
+          throw new Error('비디오 재생에 실패했습니다. 브라우저 권한을 확인해주세요.');
+        }
       }
 
       setIsScanning(true);
@@ -213,6 +251,46 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
     }
   };
 
+  // 이미지 압축 함수
+  const compressImage = (file, maxWidth = 1920, maxHeight = 1920, quality = 0.7) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // 비율 유지하면서 리사이즈
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            } else {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 압축된 이미지를 base64로 변환
+          const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressedBase64);
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+    });
+  };
+
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -227,11 +305,17 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
     if (!file) return;
 
     setError(null);
-    setScanStatus('이미지에서 바코드 인식 중... (Google Vision API)');
+    setScanStatus('이미지 압축 중...');
 
     try {
-      // 이미지를 base64로 변환
-      const imageBase64 = await fileToBase64(file);
+      // 모바일 사진은 크기가 크므로 압축
+      let imageBase64;
+      if (file.size > 1024 * 1024) { // 1MB 이상이면 압축
+        setScanStatus('이미지 압축 중... (큰 이미지)');
+        imageBase64 = await compressImage(file, 1920, 1920, 0.7);
+      } else {
+        imageBase64 = await fileToBase64(file);
+      }
       
       setScanStatus('Google Vision API로 바코드 분석 중...');
       
@@ -333,6 +417,13 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
               autoPlay
               playsInline
               muted
+              style={{
+                width: '100%',
+                height: 'auto',
+                backgroundColor: '#000',
+                display: 'block',
+                minHeight: '300px'
+              }}
             />
             <div className="scanner-overlay">
               <div className="scanner-frame"></div>

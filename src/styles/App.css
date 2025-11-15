@@ -227,6 +227,9 @@ body {
   width: 100%;
   height: auto;
   display: block;
+  background-color: #000;
+  object-fit: contain;
+  min-height: 300px;
 }
 
 .scanner-overlay {
