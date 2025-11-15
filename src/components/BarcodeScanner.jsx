@@ -1,19 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 
-const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
-  const [isScanning, setIsScanning] = useState(false);
+const BarcodeScanner = ({ onBarcodeScanned, onBarcodesBatch, isMobile, maxCount, currentCount }) => {
   const [error, setError] = useState(null);
   const [scanStatus, setScanStatus] = useState('');
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const imageTimeoutRef = useRef(null);
-  const scanIntervalRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      stopScanning();
-    };
-  }, []);
+  const [processingFiles, setProcessingFiles] = useState([]);
 
   const recognizeBarcodeFromImage = async (imageBase64) => {
     try {
@@ -78,225 +68,6 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
     }
   };
 
-  const startScanning = async () => {
-    try {
-      setError(null);
-      
-      // 모바일에서는 낮은 해상도로 설정
-      const constraints = isMobile ? {
-        video: {
-          facingMode: 'environment', // 후면 카메라 사용
-          width: { ideal: 640, max: 1280 },
-          height: { ideal: 480, max: 720 }
-        }
-      } : {
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 }
-        }
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        const video = videoRef.current;
-        
-        // 비디오 속성 명시적으로 설정 (모바일 호환성)
-        video.setAttribute('playsinline', 'true');
-        video.setAttribute('webkit-playsinline', 'true');
-        video.setAttribute('x5-playsinline', 'true');
-        video.muted = true;
-        video.playsInline = true;
-        
-        // 스트림 설정
-        video.srcObject = stream;
-        
-        // 비디오가 로드될 때까지 대기
-        await new Promise((resolve, reject) => {
-          if (!video) {
-            reject(new Error('비디오 요소가 없습니다.'));
-            return;
-          }
-          
-          const onLoadedMetadata = () => {
-            video.removeEventListener('loadedmetadata', onLoadedMetadata);
-            video.removeEventListener('error', onError);
-            clearTimeout(timeoutId);
-            resolve();
-          };
-          
-          const onError = (e) => {
-            video.removeEventListener('loadedmetadata', onLoadedMetadata);
-            video.removeEventListener('error', onError);
-            clearTimeout(timeoutId);
-            reject(new Error('비디오 로드 실패'));
-          };
-          
-          video.addEventListener('loadedmetadata', onLoadedMetadata);
-          video.addEventListener('error', onError);
-          
-          // 타임아웃 설정 (10초로 증가)
-          const timeoutId = setTimeout(() => {
-            video.removeEventListener('loadedmetadata', onLoadedMetadata);
-            video.removeEventListener('error', onError);
-            reject(new Error('비디오 로드 타임아웃'));
-          }, 10000);
-        });
-        
-        // 비디오 재생 시도
-        try {
-          await video.play();
-          console.log('비디오 재생 성공');
-        } catch (playError) {
-          console.error('비디오 재생 오류:', playError);
-          // 재생 실패 시 한 번 더 시도
-          try {
-            video.load();
-            await new Promise(resolve => setTimeout(resolve, 500));
-            await video.play();
-            console.log('비디오 재생 재시도 성공');
-          } catch (retryError) {
-            console.error('비디오 재생 재시도 실패:', retryError);
-            throw new Error('비디오 재생에 실패했습니다. 브라우저 권한을 확인해주세요.');
-          }
-        }
-      }
-
-      setIsScanning(true);
-      setScanStatus('바코드를 스캔 중... (Google Vision API 사용)');
-
-      // 주기적으로 프레임을 캡처하여 바코드 인식
-      let scanAttempts = 0;
-      let isProcessing = false;
-      scanIntervalRef.current = setInterval(async () => {
-        if (isProcessing || !videoRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
-          return;
-        }
-
-        try {
-          isProcessing = true;
-          scanAttempts++;
-
-          // 비디오 프레임을 캔버스에 그리기
-          const canvas = document.createElement('canvas');
-          canvas.width = videoRef.current.videoWidth;
-          canvas.height = videoRef.current.videoHeight;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(videoRef.current, 0, 0);
-          
-          // base64로 변환
-          const imageBase64 = canvas.toDataURL('image/jpeg', 0.8);
-
-          // Google Vision API로 바코드 인식
-          const barcodeText = await recognizeBarcodeFromImage(imageBase64);
-          
-          if (barcodeText) {
-            setScanStatus(`인식 시도: ${scanAttempts}회 - "${barcodeText}"`);
-            
-            // 숫자로 시작하는 22자리 바코드 패턴 검증
-            if (/^[0-9][A-Za-z0-9]{21}$/.test(barcodeText)) {
-              if (scanIntervalRef.current) {
-                clearInterval(scanIntervalRef.current);
-                scanIntervalRef.current = null;
-              }
-              setScanStatus('바코드 인식 성공!');
-              handleBarcodeFound(barcodeText);
-            } else if (barcodeText.length > 0) {
-              setScanStatus(`인식된 번호: "${barcodeText}" (${barcodeText.length}자리) - 숫자로 시작하는 22자리 바코드가 아닙니다.`);
-              isProcessing = false;
-            } else {
-              isProcessing = false;
-            }
-          } else {
-            isProcessing = false;
-          }
-        } catch (err) {
-          // 인식 실패는 무시하고 계속 시도
-          if (scanAttempts % 10 === 0) {
-            setScanStatus(`스캔 중... (${scanAttempts}회 시도)`);
-          }
-          isProcessing = false;
-        }
-      }, 1000); // 1초마다 스캔
-    } catch (err) {
-      console.error('카메라 스캔 시작 오류:', err);
-      let errorMessage = '카메라 접근에 실패했습니다.';
-      
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        errorMessage = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.';
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        errorMessage = '카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.';
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        errorMessage = '카메라에 접근할 수 없습니다. 다른 앱에서 카메라를 사용 중일 수 있습니다.';
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      setError(errorMessage);
-      setIsScanning(false);
-      
-      // 스트림 정리
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-    }
-  };
-
-  const stopScanning = () => {
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setIsScanning(false);
-    setScanStatus('');
-  };
-
-  const capturePhoto = () => {
-    if (!videoRef.current || !isScanning) return;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoRef.current, 0, 0);
-    
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `barcode_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        onBarcodeScanned(file, null);
-      }
-    }, 'image/jpeg', 0.9);
-  };
-
-  const handleBarcodeFound = async (barcodeText) => {
-    // 바코드 번호를 찾았을 때 사진 캡처
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoRef.current, 0, 0);
-      
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const file = new File([blob], `barcode_${Date.now()}.jpg`, { type: 'image/jpeg' });
-          onBarcodeScanned(file, barcodeText);
-          stopScanning();
-        }
-      }, 'image/jpeg', 0.9);
-    }
-  };
-
   // 이미지 압축 함수
   const compressImage = (file, maxWidth = 1920, maxHeight = 1920, quality = 0.7) => {
     return new Promise((resolve, reject) => {
@@ -346,51 +117,107 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
     });
   };
 
-  const handleFileInput = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setError(null);
-    setScanStatus('이미지 압축 중...');
-
+  const processFile = async (file, index, total) => {
     try {
+      setScanStatus(`처리 중: ${index + 1}/${total} - ${file.name}`);
+
       // 모바일 사진은 크기가 크므로 압축
       let imageBase64;
       if (file.size > 1024 * 1024) { // 1MB 이상이면 압축
-        setScanStatus('이미지 압축 중... (큰 이미지)');
         imageBase64 = await compressImage(file, 1920, 1920, 0.7);
       } else {
         imageBase64 = await fileToBase64(file);
       }
       
-      setScanStatus('Google Vision API로 바코드 분석 중...');
+      setScanStatus(`바코드 분석 중: ${index + 1}/${total} - ${file.name}`);
       
       // Google Vision API로 바코드 인식
       const barcodeText = await recognizeBarcodeFromImage(imageBase64);
 
       if (barcodeText) {
-        setScanStatus(`인식된 번호: "${barcodeText}"`);
-        
-        // 잠시 표시 후 처리
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
         // 숫자로 시작하는 22자리 바코드 검증
         if (/^[0-9][A-Za-z0-9]{21}$/.test(barcodeText)) {
-          onBarcodeScanned(file, barcodeText);
-          setScanStatus('');
+          return { success: true, file, barcode: barcodeText };
         } else {
-          setError(`인식된 번호: "${barcodeText}" (${barcodeText.length}자리) - 숫자로 시작하는 22자리 바코드가 아닙니다.`);
-          setScanStatus('');
+          // 바코드 형식이 맞지 않아도 파일은 추가 (바코드 번호 없이)
+          return { success: false, file, barcode: null, error: `인식된 번호: "${barcodeText}" (${barcodeText.length}자리) - 숫자로 시작하는 22자리 바코드가 아닙니다.` };
         }
       } else {
-        setError('바코드를 인식할 수 없습니다. 바코드가 선명하고 전체가 보이는지 확인해주세요.');
-        setScanStatus('');
+        // 바코드를 인식하지 못해도 파일은 추가 (바코드 번호 없이)
+        return { success: false, file, barcode: null, error: '바코드를 인식할 수 없습니다.' };
       }
     } catch (err) {
       console.error('바코드 인식 오류:', err);
-      setError(err.message || '바코드를 인식할 수 없습니다. 이미지 품질을 확인해주세요.');
-      setScanStatus('');
+      // 에러가 발생해도 파일은 추가 (바코드 번호 없이)
+      return { success: false, file, barcode: null, error: err.message || '바코드를 인식할 수 없습니다.' };
     }
+  };
+
+  const handleFileInput = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // 최대 개수 체크
+    const remainingSlots = maxCount - currentCount;
+    if (remainingSlots <= 0) {
+      setError(`최대 ${maxCount}개까지 업로드할 수 있습니다.`);
+      e.target.value = ''; // input 초기화
+      return;
+    }
+
+    // 선택한 파일 수가 남은 슬롯보다 많으면 제한
+    const filesToProcess = files.slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      setError(`${files.length}개를 선택했지만, 최대 ${maxCount}개까지만 업로드 가능합니다. ${remainingSlots}개만 처리합니다.`);
+    } else {
+      setError(null);
+    }
+
+    setScanStatus('');
+    setProcessingFiles(filesToProcess.map(f => f.name));
+
+    // 각 파일을 순차적으로 처리
+    const results = [];
+    for (let i = 0; i < filesToProcess.length; i++) {
+      const result = await processFile(filesToProcess[i], i, filesToProcess.length);
+      results.push(result);
+    }
+
+    // 처리 완료
+    setScanStatus('');
+    setProcessingFiles([]);
+    
+    // 일괄 추가를 위한 데이터 준비
+    const itemsToAdd = results.map(r => ({
+      file: r.file,
+      barcodeNumber: r.barcode || null
+    }));
+
+    // 일괄 추가 함수가 있으면 사용, 없으면 개별 추가
+    if (onBarcodesBatch) {
+      onBarcodesBatch(itemsToAdd);
+    } else {
+      // 개별 추가 (하위 호환성)
+      results.forEach(result => {
+        onBarcodeScanned(result.file, result.barcode || null);
+      });
+    }
+    
+    // 성공/실패 요약
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+    
+    if (failCount > 0 && successCount > 0) {
+      // 에러는 일괄 추가 함수에서 처리하므로 여기서는 정보만 표시
+      setError(null);
+    } else if (successCount === 0 && failCount > 0) {
+      setError('모든 파일에서 바코드를 인식하지 못했습니다. (이미지는 추가되었습니다)');
+    } else {
+      setError(null);
+    }
+
+    // input 초기화 (같은 파일을 다시 선택할 수 있도록)
+    e.target.value = '';
   };
 
   return (
@@ -414,76 +241,44 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
         </div>
       )}
 
-      {!isScanning ? (
-        <div>
-          {isMobile ? (
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileInput}
-              style={{ display: 'none' }}
-              id="camera-input"
-            />
-          ) : (
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileInput}
-              style={{ display: 'none' }}
-              id="file-input"
-            />
-          )}
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              if (isMobile) {
-                document.getElementById('camera-input').click();
-              } else {
-                document.getElementById('file-input').click();
-              }
-            }}
-          >
-            {isMobile ? '카메라로 촬영' : '사진 선택'}
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={startScanning}
-            style={{ marginLeft: '10px' }}
-          >
-            실시간 스캔 시작
-          </button>
+      {processingFiles.length > 0 && (
+        <div style={{ 
+          padding: '10px', 
+          backgroundColor: '#fff3e0', 
+          borderRadius: '8px', 
+          marginBottom: '15px',
+          fontSize: '13px',
+          color: '#e65100'
+        }}>
+          <div>처리 중인 파일:</div>
+          <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
+            {processingFiles.map((name, idx) => (
+              <li key={idx} style={{ fontSize: '12px' }}>{name}</li>
+            ))}
+          </ul>
         </div>
-      ) : (
-        <div>
-          <div className="scanner-container">
-            <video
-              ref={videoRef}
-              className="scanner-video"
-              autoPlay
-              playsInline
-              muted
-              style={{
-                width: '100%',
-                height: 'auto',
-                backgroundColor: '#000',
-                display: 'block',
-                minHeight: '300px',
-                objectFit: 'cover'
-              }}
-            />
-            <div className="scanner-overlay">
-              <div className="scanner-frame"></div>
-            </div>
-          </div>
-          <div className="scanner-controls">
-            <button className="btn btn-primary" onClick={capturePhoto}>
-              사진 촬영 (수동)
-            </button>
-            <button className="btn btn-danger" onClick={stopScanning}>
-              중지
-            </button>
-          </div>
+      )}
+
+      <div>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          capture={isMobile ? "environment" : undefined}
+          onChange={handleFileInput}
+          style={{ display: 'none' }}
+          id="file-input"
+        />
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            document.getElementById('file-input').click();
+          }}
+          disabled={currentCount >= maxCount}
+        >
+          {isMobile ? '사진 선택' : '사진 선택'}
+        </button>
+        {currentCount >= maxCount && (
           <div style={{ 
             marginTop: '10px', 
             padding: '10px', 
@@ -492,14 +287,12 @@ const BarcodeScanner = ({ onBarcodeScanned, isMobile }) => {
             fontSize: '13px',
             color: '#e65100'
           }}>
-            💡 팁: 바코드를 스캔 프레임 중앙에 맞추고 카메라를 바코드에 가까이 대세요.
+            최대 {maxCount}개까지 업로드할 수 있습니다.
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
 export default BarcodeScanner;
-
-

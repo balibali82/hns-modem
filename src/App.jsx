@@ -53,6 +53,62 @@ function App() {
     setMessage(null);
   };
 
+  // 일괄 추가 함수 (중복 검증 포함)
+  const handleBarcodesBatch = (items) => {
+    if (barcodes.length + items.length > MAX_BARCODES) {
+      setMessage({ type: 'error', text: `최대 ${MAX_BARCODES}개까지 업로드할 수 있습니다.` });
+      return;
+    }
+
+    const existingBarcodes = new Set(
+      barcodes
+        .filter(b => b.number)
+        .map(b => b.number.trim())
+    );
+
+    const newBarcodes = [];
+    const duplicateBarcodes = [];
+    const seenInBatch = new Set();
+
+    for (const item of items) {
+      const { file, barcodeNumber } = item;
+      
+      if (barcodeNumber) {
+        const trimmedBarcode = barcodeNumber.trim();
+        
+        // 기존 목록과 중복 체크
+        if (existingBarcodes.has(trimmedBarcode)) {
+          duplicateBarcodes.push(trimmedBarcode);
+          continue;
+        }
+        
+        // 같은 일괄 처리 내에서 중복 체크
+        if (seenInBatch.has(trimmedBarcode)) {
+          duplicateBarcodes.push(trimmedBarcode);
+          continue;
+        }
+        
+        seenInBatch.add(trimmedBarcode);
+      }
+      
+      newBarcodes.push({ file, number: barcodeNumber || null });
+    }
+
+    if (duplicateBarcodes.length > 0) {
+      setMessage({ 
+        type: 'error', 
+        text: `중복된 바코드 번호가 있습니다: ${duplicateBarcodes.join(', ')}` 
+      });
+    }
+
+    if (newBarcodes.length > 0) {
+      setBarcodes(prev => [...prev, ...newBarcodes]);
+      if (duplicateBarcodes.length === 0) {
+        setMessage(null);
+      }
+    }
+  };
+
   const handleDeleteBarcode = (index) => {
     setBarcodes(prev => prev.filter((_, i) => i !== index));
   };
@@ -329,7 +385,10 @@ function App() {
 
       <BarcodeScanner 
         onBarcodeScanned={handleBarcodeScanned}
+        onBarcodesBatch={handleBarcodesBatch}
         isMobile={isMobile}
+        maxCount={MAX_BARCODES}
+        currentCount={barcodes.length}
       />
 
       <BarcodeList 
