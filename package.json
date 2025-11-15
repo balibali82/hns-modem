@@ -1,0 +1,29 @@
+{
+  "name": "barcord",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "dev:set": "powershell -Command \"$env:GOOGLE_CLOUD_VISION_API_KEY='AIzaSyBtJPY9r9KyKKq_5q9zA5iqJK3R5H0gAk4'; npm run dev\"",
+    "dev:vite": "vite",
+    "dev:vercel": "vercel dev --listen 3001",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@zxing/library": "^0.20.0",
+    "express": "^4.21.2",
+    "nodemailer": "^6.9.7",
+    "qrcode": "^1.5.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.8"
+  }
+}
