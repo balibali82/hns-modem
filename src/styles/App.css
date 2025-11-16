@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
 * {
   margin: 0;
@@ -7,12 +7,12 @@
 }
 
 body {
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f5f5f5;
   min-height: 100vh;
 }
 
@@ -22,20 +22,20 @@ body {
   padding: 20px;
   background-color: #ffffff;
   min-height: 100vh;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .header {
   text-align: center;
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 2px solid #3617CE;
 }
 
 .header h1 {
-  color: #1a1a1a;
+  color: #3617CE;
   font-size: 28px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.5px;
   margin-bottom: 8px;
 }
@@ -59,44 +59,45 @@ body {
 .form-field label {
   display: block;
   margin-bottom: 8px;
-  color: #6200ee;
-  font-weight: 500;
-  font-size: 13px;
+  color: #3617CE;
+  font-weight: 600;
+  font-size: 14px;
   letter-spacing: 0.1px;
-  text-transform: uppercase;
 }
 
 .form-group input,
 .form-field input {
   width: 100%;
   padding: 14px 16px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 4px;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
   font-size: 16px;
-  font-family: 'Roboto', sans-serif;
-  background-color: #ffffff;
+  font-family: 'Noto Sans KR', sans-serif;
+  background-color: #E3F2FD;
   color: #1a1a1a;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 
 .form-group input:hover,
 .form-field input:hover {
-  border-color: rgba(0, 0, 0, 0.24);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background-color: #BBDEFB;
+  border-bottom-color: rgba(0, 0, 0, 0.24);
+  box-shadow: none;
 }
 
 .form-group input:focus,
 .form-field input:focus {
   outline: none;
-  border-color: #6200ee;
-  border-width: 2px;
-  box-shadow: 0 0 0 3px rgba(98, 0, 238, 0.12);
+  background-color: #BBDEFB;
+  border-bottom: 2px solid #3617CE;
+  box-shadow: none;
 }
 
 .form-group input:invalid,
 .form-field input:invalid {
-  border-color: #b00020;
+  border-bottom-color: rgba(0, 0, 0, 0.12);
 }
 
 .form-group input::placeholder,
@@ -118,9 +119,9 @@ body {
 
 .barcode-section h2 {
   font-size: 20px;
-  font-weight: 500;
+  font-weight: 700;
   margin-bottom: 16px;
-  color: #1a1a1a;
+  color: #3617CE;
   letter-spacing: -0.3px;
 }
 
@@ -144,23 +145,23 @@ body {
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  background-color: #f5f5f5;
-  color: #666;
-  border: 1px solid #ddd;
+  background-color: #ffffff;
+  color: #3617CE;
+  border: 1px solid #3617CE;
   border-radius: 4px;
   font-size: 13px;
-  font-weight: 500;
-  font-family: 'Roboto', sans-serif;
+  font-weight: 600;
+  font-family: 'Noto Sans KR', sans-serif;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 }
 
 .qr-download-button:hover {
-  background-color: #e0e0e0;
-  color: #333;
+  background-color: #3617CE;
+  color: white;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(54, 23, 206, 0.2);
 }
 
 .qr-download-button:active {
@@ -181,35 +182,35 @@ body {
 
 .btn-copy-all {
   padding: 8px 16px;
-  background-color: #6200ee;
+  background-color: #3617CE;
   color: white;
   border: none;
   border-radius: 4px;
   font-size: 13px;
-  font-weight: 500;
-  font-family: 'Roboto', sans-serif;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  font-weight: 600;
+  font-family: 'Noto Sans KR', sans-serif;
+  letter-spacing: 0.3px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(98, 0, 238, 0.2);
+  box-shadow: 0 2px 4px rgba(54, 23, 206, 0.2);
   white-space: nowrap;
 }
 
 .btn-copy-all:hover {
-  background-color: #7c3aed;
-  box-shadow: 0 4px 8px rgba(98, 0, 238, 0.3);
+  background-color: #2A1299;
+  box-shadow: 0 4px 8px rgba(54, 23, 206, 0.3);
   transform: translateY(-1px);
 }
 
 .btn-copy-all:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(98, 0, 238, 0.2);
+  box-shadow: 0 2px 4px rgba(54, 23, 206, 0.2);
 }
 
 .barcode-count {
   font-size: 14px;
-  color: #666;
+  color: #3617CE;
+  font-weight: 600;
   margin-bottom: 15px;
 }
 
@@ -247,7 +248,7 @@ body {
 .scanner-frame {
   width: 80%;
   height: 200px;
-  border: 2px solid #4CAF50;
+  border: 2px solid #3617CE;
   border-radius: 8px;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
 }
@@ -263,24 +264,23 @@ body {
   border: none;
   border-radius: 4px;
   font-size: 14px;
-  font-weight: 500;
-  font-family: 'Roboto', sans-serif;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  font-weight: 600;
+  font-family: 'Noto Sans KR', sans-serif;
+  letter-spacing: 0.3px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex: 1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .btn-primary {
-  background-color: #6200ee;
+  background-color: #3617CE;
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #7c3aed;
-  box-shadow: 0 4px 8px rgba(98, 0, 238, 0.3);
+  background-color: #2A1299;
+  box-shadow: 0 4px 8px rgba(54, 23, 206, 0.3);
   transform: translateY(-1px);
 }
 
@@ -298,13 +298,15 @@ body {
 }
 
 .btn-secondary {
-  background-color: #03dac6;
-  color: #000000;
+  background-color: #ffffff;
+  color: #3617CE;
+  border: 2px solid #3617CE;
 }
 
 .btn-secondary:hover {
-  background-color: #18ffff;
-  box-shadow: 0 4px 8px rgba(3, 218, 198, 0.3);
+  background-color: #3617CE;
+  color: white;
+  box-shadow: 0 4px 8px rgba(54, 23, 206, 0.3);
   transform: translateY(-1px);
 }
 
@@ -328,11 +330,17 @@ body {
 
 .barcode-item {
   position: relative;
-  border: 1px solid #ddd;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   overflow: hidden;
-  background-color: #fff;
-  padding: 8px;
+  background-color: #fafafa;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.barcode-item:hover {
+  border-color: #3617CE;
+  box-shadow: 0 2px 8px rgba(54, 23, 206, 0.1);
 }
 
 .barcode-item-content {
@@ -363,13 +371,14 @@ body {
 
 .barcode-item-delete {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  background-color: transparent;
-  color: #f44336;
-  border: none;
-  width: 24px;
-  height: 24px;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #3617CE;
+  border: 1px solid #3617CE;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -379,8 +388,9 @@ body {
 }
 
 .barcode-item-delete:hover {
-  color: #d32f2f;
-  transform: scale(1.15);
+  background-color: #3617CE;
+  color: white;
+  transform: scale(1.1);
 }
 
 .barcode-item-delete:active {
@@ -435,34 +445,34 @@ body {
 .send-section {
   margin-top: 30px;
   padding-top: 20px;
-  border-top: 2px solid #e0e0e0;
+  border-top: 2px solid #3617CE;
 }
 
 .send-button {
   width: 100%;
   padding: 16px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3617CE;
   color: white;
   border: none;
   border-radius: 4px;
   font-size: 16px;
-  font-weight: 500;
-  font-family: 'Roboto', sans-serif;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  font-weight: 600;
+  font-family: 'Noto Sans KR', sans-serif;
+  letter-spacing: 0.3px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(54, 23, 206, 0.3);
 }
 
 .send-button:hover {
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+  background: #2A1299;
+  box-shadow: 0 6px 16px rgba(54, 23, 206, 0.4);
   transform: translateY(-2px);
 }
 
 .send-button:active {
   transform: translateY(0);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(54, 23, 206, 0.3);
 }
 
 .send-button:disabled {

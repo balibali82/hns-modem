@@ -362,7 +362,7 @@ function App() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="emailAddress">메일 주소 *</label>
+        <label htmlFor="emailAddress">임대장비담당자 이메일 주소 *</label>
         <input
           type="email"
           id="emailAddress"
