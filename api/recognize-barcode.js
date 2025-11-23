@@ -130,59 +130,72 @@ export default async function handler(req, res) {
         // 모든 텍스트에서 숫자로 시작하는 22자리 패턴 찾기
         const allTexts = textAnnotations.map(t => t.description || '').filter(t => t.length > 0);
         
-        // 방법 1: 각 텍스트 블록에서 직접 검색
+        // 각 텍스트 블록에서 숫자만으로 구성된 정확히 22자리 찾기
+        // 짧은 숫자들을 조합하지 않도록 각 텍스트 블록을 독립적으로 검사
         for (const text of allTexts) {
-          // 공백, 하이픈, 콜론 등 특수문자 제거 후 검색
-          const cleanedText = text.replace(/[^A-Za-z0-9]/g, '');
+          // 방법 1: negative lookbehind/lookahead를 사용하여 정확히 22자리 숫자 찾기
+          // 앞뒤에 숫자가 없어야 함 (다른 숫자와 연결되지 않아야 함)
+          try {
+            const pattern = /(?<![0-9])[0-9]{22}(?![0-9])/g;
+            const matches = text.match(pattern);
+            
+            if (matches && matches.length > 0) {
+              for (const match of matches) {
+                // 정확히 22자리 숫자인지 확인
+                if (match.length === 22 && /^[0-9]{22}$/.test(match)) {
+                  console.log('✅ 22자리 숫자 발견:', match);
+                  return res.status(200).json({
+                    success: true,
+                    barcode: match,
+                    format: 'TEXT_DETECTED',
+                    source: 'text_detection',
+                    allTexts: allTexts.slice(0, 5) // 처음 5개만 반환
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            // lookbehind를 지원하지 않는 환경일 수 있음
+            console.log('lookbehind 미지원, 대체 방법 사용');
+          }
           
-          // 숫자로 시작하는 22자리 패턴 찾기 (숫자가 무조건 맨 앞)
-          // 부분 문자열에서도 찾을 수 있도록 ^ $ 제거
-          const pattern = /[0-9][A-Za-z0-9]{21}/g;
-          const matches = cleanedText.match(pattern);
+          // 방법 2: 연속된 숫자 시퀀스를 찾아서 정확히 22자리인지 확인
+          // 모든 연속된 숫자 시퀀스를 찾기
+          const numberSequences = text.match(/[0-9]+/g);
           
-          if (matches) {
-            for (const match of matches) {
-              // 숫자로 시작하는 정확히 22자리인지 확인
-              if (match.length === 22 && /^[0-9]/.test(match)) {
-                console.log('✅ 22자리 텍스트 발견:', match);
-                return res.status(200).json({
-                  success: true,
-                  barcode: match,
-                  format: 'TEXT_DETECTED',
-                  source: 'text_detection',
-                  allTexts: allTexts.slice(0, 5) // 처음 5개만 반환
-                });
+          if (numberSequences) {
+            for (const seq of numberSequences) {
+              // 정확히 22자리 숫자인지 확인
+              if (seq.length === 22 && /^[0-9]{22}$/.test(seq)) {
+                // 원본 텍스트에서 이 숫자 시퀀스의 위치 확인
+                const seqIndex = text.indexOf(seq);
+                if (seqIndex !== -1) {
+                  // 앞뒤에 숫자가 없는지 확인
+                  const before = seqIndex > 0 ? text[seqIndex - 1] : '';
+                  const after = seqIndex + 22 < text.length ? text[seqIndex + 22] : '';
+                  // 앞뒤가 숫자가 아니거나 빈 문자열이면 유효한 22자리
+                  if ((!before || !/[0-9]/.test(before)) && (!after || !/[0-9]/.test(after))) {
+                    console.log('✅ 22자리 숫자 발견 (연속 숫자 시퀀스):', seq);
+                    return res.status(200).json({
+                      success: true,
+                      barcode: seq,
+                      format: 'TEXT_DETECTED',
+                      source: 'text_detection',
+                      allTexts: allTexts.slice(0, 5)
+                    });
+                  }
+                }
               }
             }
           }
         }
         
-        // 방법 2: 전체 텍스트를 합쳐서 검색 (숫자가 무조건 맨 앞)
-        const combinedText = allTexts.join(' ').replace(/[^A-Za-z0-9]/g, '');
-        const combinedMatches = combinedText.match(/[0-9][A-Za-z0-9]{21}/g);
-        
-        if (combinedMatches) {
-          for (const match of combinedMatches) {
-            // 숫자로 시작하는 22자리인지 확인
-            if (match.length === 22 && /^[0-9]/.test(match)) {
-              console.log('✅ 22자리 텍스트 발견 (전체 텍스트에서):', match);
-              return res.status(200).json({
-                success: true,
-                barcode: match,
-                format: 'TEXT_DETECTED',
-                source: 'text_detection',
-                allTexts: allTexts.slice(0, 5)
-              });
-            }
-          }
-        }
-        
-        // 숫자로 시작하는 22자리를 찾지 못한 경우
-        console.log('⚠️ 숫자로 시작하는 22자리 텍스트 없음');
+        // 숫자만으로 구성된 22자리를 찾지 못한 경우
+        console.log('⚠️ 숫자만으로 구성된 22자리 텍스트 없음');
         console.log('인식된 텍스트 샘플:', allTexts.slice(0, 3));
         return res.status(200).json({
           success: false,
-          error: '숫자로 시작하는 22자리 텍스트를 찾을 수 없습니다.',
+          error: '숫자만으로 구성된 22자리 텍스트를 찾을 수 없습니다.',
           details: {
             textCount: textAnnotations.length,
             sampleTexts: allTexts.slice(0, 5)

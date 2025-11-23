@@ -135,12 +135,12 @@ const BarcodeScanner = ({ onBarcodeScanned, onBarcodesBatch, isMobile, maxCount,
       const barcodeText = await recognizeBarcodeFromImage(imageBase64);
 
       if (barcodeText) {
-        // 숫자로 시작하는 22자리 바코드 검증
-        if (/^[0-9][A-Za-z0-9]{21}$/.test(barcodeText)) {
+        // 숫자만으로 구성된 정확히 22자리 바코드 검증
+        if (/^[0-9]{22}$/.test(barcodeText)) {
           return { success: true, file, barcode: barcodeText };
         } else {
           // 바코드 형식이 맞지 않아도 파일은 추가 (바코드 번호 없이)
-          return { success: false, file, barcode: null, error: `인식된 번호: "${barcodeText}" (${barcodeText.length}자리) - 숫자로 시작하는 22자리 바코드가 아닙니다.` };
+          return { success: false, file, barcode: null, error: `인식된 번호: "${barcodeText}" (${barcodeText.length}자리) - 숫자만으로 구성된 22자리 바코드가 아닙니다.` };
         }
       } else {
         // 바코드를 인식하지 못해도 파일은 추가 (바코드 번호 없이)

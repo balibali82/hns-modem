@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node server.js",
-    "dev:set": "powershell -Command \"$env:GOOGLE_CLOUD_VISION_API_KEY='AIzaSyBtJPY9r9KyKKq_5q9zA5iqJK3R5H0gAk4'; npm run dev\"",
+    "dev": "powershell -Command \"$env:GOOGLE_CLOUD_VISION_API_KEY='AIzaSyBtJPY9r9KyKKq_5q9zA5iqJK3R5H0gAk4'; $env:SMTP_HOST='smtp.gmail.com'; $env:SMTP_PORT='587'; $env:SMTP_SECURE='false'; $env:SMTP_USER='a119cm@gmail.com'; $env:SMTP_PASS='pwgo ipou ejmh opwn'; node server.js\"",
+    "dev:set": "powershell -Command \"$env:GOOGLE_CLOUD_VISION_API_KEY='AIzaSyBtJPY9r9KyKKq_5q9zA5iqJK3R5H0gAk4'; node server.js\"",
+    "dev:full": "powershell -Command \"$env:GOOGLE_CLOUD_VISION_API_KEY='AIzaSyBtJPY9r9KyKKq_5q9zA5iqJK3R5H0gAk4'; $env:SMTP_HOST='smtp.gmail.com'; $env:SMTP_PORT='587'; $env:SMTP_SECURE='false'; $env:SMTP_USER='a119cm@gmail.com'; $env:SMTP_PASS='pwgo ipou ejmh opwn'; node server.js\"",
     "dev:vite": "vite",
     "dev:vercel": "vercel dev --listen 3001",
     "build": "vite build",
